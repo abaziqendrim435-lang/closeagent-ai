@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.streamlit/secrets.toml
+.agents/skills/developing-with-streamlit
+.claude/skills/developing-with-streamlit
