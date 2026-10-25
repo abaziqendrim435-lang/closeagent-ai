@@ -434,9 +434,10 @@ def init_state() -> None:
 
 
 # ── UI helpers ───────────────────────────────────────────────────────────────
-def render_metrics() -> None:
+def render_metrics(container: Any) -> None:
     """Real counters for this session only — no invented numbers."""
-    c1, c2, c3 = st.columns(3)
+    container.empty()
+    c1, c2, c3 = container.container().columns(3)
     c1.metric("Leads processed (this session)", st.session_state.leads_processed)
     c2.metric("Drafts written (this session)", st.session_state.drafts_written)
     c3.metric("Emails found via Hunter.io", st.session_state.emails_found)
@@ -533,7 +534,8 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    render_metrics()
+    metrics_slot = st.empty()
+    render_metrics(metrics_slot)
 
     st.markdown('<div class="ca-command-title">◈ 1 · Your leads</div>', unsafe_allow_html=True)
     st.caption(
@@ -620,6 +622,7 @@ def main() -> None:
                 "language": "" if language.startswith("Auto") else language,
             }
             run_agent(openai_key, hunter_key, offer, leads)
+            render_metrics(metrics_slot)
 
     if st.session_state.api_error:
         st.error(st.session_state.api_error)
