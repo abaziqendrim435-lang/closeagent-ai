@@ -1,5 +1,3 @@
-company_name,target_email
-Apple,senin.kendi.abaziqendrim435@gmail.com
-
-
-
+name,company,email,website,title,notes
+Jane Doe,Example Studio,jane@example.com,example.com,Founder,Small design agency; recently launched a new pricing page
+John Smith,Sample Logistics,,sample-logistics.example,Head of Sales,Regional freight company hiring two new sales reps
