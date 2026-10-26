@@ -410,18 +410,24 @@ Targets (provided by the sender from their own list):
 {leads_block}
 
 For EACH target:
-1. Write ONE sentence describing a plausible challenge this company may have that the
-   sender's offer helps with. Base it only on the facts above. If facts are thin,
-   keep it general and honest — do not invent specific events, numbers or quotes.
-2. Write a short, personalized outreach email (80–130 words) with a "Subject:" line.
+1. Write ONE sentence on why this specific person/company is a good fit for the sender's
+   offer (their audience, niche, what they do). Base it only on the facts above. If facts
+   are thin, keep it general and honest — do not invent specific events, numbers or quotes.
+2. Write a short, personalized email (70–120 words) with a "Subject:" line.
 
 Rules:
-- Open with something specific to the target from the facts above. No generic openers.
+- Subject: 3–7 words, specific to the recipient, sounds like a person wrote it.
+  No hype words ("Boost", "Unlock", "Supercharge", "Game-changer", "Revolutionize").
+- First sentence must reference a concrete detail from the facts above (their niche,
+  audience, a topic they cover). Never start with "I loved", "I hope", "I came across",
+  "Just reaching out" or similar filler.
+- Explain the offer in plain words in 1–2 sentences, focused on what's in it for THEM.
 - Be honest: never claim results, clients or numbers that are not given above.
 - Never invent people, emails or companies.
 - One clear call to action: {cta}
 - Sign off as {sender}{(' — ' + sender_company) if sender_company else ''}.
 - Always end with a polite one-line opt-out, e.g. "If this isn't relevant, just reply 'no' and I won't follow up."
+- Plain, friendly, human tone. No exclamation marks in the first line.
 - Write in {language}.
 
 Return ONLY valid JSON with this exact shape:

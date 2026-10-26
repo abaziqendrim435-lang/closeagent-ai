@@ -477,7 +477,7 @@ def render_drafts(leads: list[dict[str, str]]) -> None:
                 st.markdown(
                     f"<div style='color:#c8cce8;font-size:0.85rem;margin-bottom:0.6rem;'>"
                     f"<span style='color:#ff5ec8;font-size:0.65rem;letter-spacing:0.08em;"
-                    f"text-transform:uppercase;'>Angle</span><br>"
+                    f"text-transform:uppercase;'>Why this lead fits</span><br>"
                     f"{html.escape(lead['pain_point'])}</div>",
                     unsafe_allow_html=True,
                 )
