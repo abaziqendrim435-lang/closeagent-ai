@@ -244,7 +244,7 @@ def _apply_finder_result(lead: dict[str, str], data: dict[str, Any]) -> None:
     if position and not lead.get("title"):
         lead["title"] = position
     company = str(data.get("company") or "").strip()
-    if company:
+    if company and not lead.get("company"):
         lead["company"] = company
 
 
@@ -278,7 +278,8 @@ def find_email_with_hunter(api_key: str, lead: dict[str, str]) -> dict[str, str]
             data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
             _apply_finder_result(lead, data)
 
-        if not lead.get("email") and domain:
+        has_person = bool(first and last)
+        if not lead.get("email") and domain and not has_person:
             payload = _hunter_get(
                 HUNTER_DOMAIN_URL,
                 {
@@ -292,7 +293,7 @@ def find_email_with_hunter(api_key: str, lead: dict[str, str]) -> dict[str, str]
             data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
             emails = data.get("emails") if isinstance(data.get("emails"), list) else []
             org = str(data.get("organization") or "").strip()
-            if org:
+            if org and not lead.get("company"):
                 lead["company"] = org
             picked = None
             for item in emails:
@@ -311,11 +312,11 @@ def find_email_with_hunter(api_key: str, lead: dict[str, str]) -> dict[str, str]
                     else {}
                 )
                 lead["email_status"] = str(verification.get("status") or "found")
-                if full:
+                if full and (not lead.get("name") or lead["name"] == lead.get("company")):
                     lead["name"] = full
                     lead["first_name"] = first
                     lead["last_name"] = last
-                if picked.get("position"):
+                if picked.get("position") and not lead.get("title"):
                     lead["title"] = str(picked["position"])
 
         if lead.get("email"):
@@ -347,6 +348,23 @@ def find_email_with_hunter(api_key: str, lead: dict[str, str]) -> dict[str, str]
 
 
 
+PLATFORM_DOMAINS = frozenset(
+    {
+        "youtube.com", "youtu.be", "instagram.com", "tiktok.com", "facebook.com",
+        "x.com", "twitter.com", "linkedin.com", "twitch.tv", "pinterest.com",
+        "reddit.com", "medium.com", "substack.com", "linktr.ee", "beacons.ai",
+        "github.com", "gmail.com", "outlook.com", "hotmail.com", "yahoo.com",
+        "wordpress.com", "blogspot.com", "wixsite.com", "carrd.co", "gumroad.com",
+        "whop.com", "patreon.com", "etsy.com", "amazon.com", "google.com",
+    }
+)
+
+
+def _is_platform_domain(domain: str) -> bool:
+    d = domain.lower()
+    return any(d == p or d.endswith("." + p) for p in PLATFORM_DOMAINS)
+
+
 def enrich_missing_emails(
     api_key: str,
     leads: list[dict[str, str]],
@@ -358,6 +376,10 @@ def enrich_missing_emails(
             continue
         if not lead.get("domain"):
             lead["email_status"] = "missing"
+            continue
+        if _is_platform_domain(lead["domain"]):
+            # Hunter would return employees of YouTube/Instagram/etc., not the creator.
+            lead["email_status"] = "missing — add the creator's email manually"
             continue
         if on_progress:
             on_progress(f"Hunter.io lookup {i}/{len(leads)}: {lead.get('company') or lead['domain']}")

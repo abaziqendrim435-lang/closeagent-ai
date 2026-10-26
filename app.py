@@ -508,7 +508,10 @@ def run_agent(
         return
 
     status.update(label="Done", state="complete", expanded=False)
-    found = sum(1 for lead in leads if lead.get("email_status") not in ("provided", "missing", "not_found"))
+    found = sum(
+        1 for lead in leads
+        if lead.get("email") and lead.get("email") != "not found" and lead.get("email_status") != "provided"
+    )
     st.session_state.leads = leads
     st.session_state.leads_processed += len(leads)
     st.session_state.drafts_written += sum(1 for lead in leads if lead.get("draft"))
