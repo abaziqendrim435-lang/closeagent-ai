@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: closeagent
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: WHOP_API_KEY
+        sync: false
+      - key: WHOP_PRODUCT_ID
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.12.3

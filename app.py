@@ -9,6 +9,7 @@ import csv
 import html
 import io
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,7 @@ try:
         friendly_error,
         parse_leads_csv,
     )
+    import whop_auth
 except ImportError as exc:  # pragma: no cover - environment setup guidance
     raise SystemExit(
         "Missing dependency. Activate the project virtualenv, then install:\n"
@@ -514,14 +516,69 @@ def run_agent(
     st.session_state.api_error = None
 
 
+def license_gate() -> bool:
+    """Show the Whop license screen until a valid key is entered."""
+    key = st.session_state.get("license_key", "")
+    checked_at = st.session_state.get("license_checked_at", 0.0)
+    if key and not whop_auth.needs_recheck(checked_at):
+        return True
+    if key:
+        ok, msg = whop_auth.verify_license(key)
+        if ok:
+            st.session_state.license_checked_at = time.time()
+            return True
+        st.session_state.license_key = ""
+        st.session_state.license_error = msg
+
+    st.markdown(
+        """
+<div class="ca-hero">
+  <h1 class="ca-brand">CloseAgent.ai</h1>
+  <div class="ca-tagline">AI Outreach Copilot</div>
+  <div class="ca-divider"></div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+    _, mid, _ = st.columns([1, 2, 1])
+    with mid:
+        st.markdown('<div class="ca-command-title">◈ Activate your license</div>', unsafe_allow_html=True)
+        with st.form("license_form"):
+            entered = st.text_input(
+                "License key",
+                type="password",
+                help="You received it after purchasing CloseAgent on Whop.",
+            )
+            submit = st.form_submit_button("Unlock CloseAgent", type="primary", width="stretch")
+        if submit:
+            ok, msg = whop_auth.verify_license(entered)
+            if ok:
+                st.session_state.license_key = entered.strip()
+                st.session_state.license_checked_at = time.time()
+                st.session_state.pop("license_error", None)
+                st.rerun()
+            st.session_state.license_error = msg
+        if st.session_state.get("license_error"):
+            st.error(st.session_state.license_error)
+    return False
+
+
 # ── App ──────────────────────────────────────────────────────────────────────
 def main() -> None:
     load_local_env()
     inject_styles()
     init_state()
 
-    saved_openai = secret_value("OPENAI_API_KEY", "openai_api_key")
-    saved_hunter = secret_value("HUNTER_API_KEY", "hunter_api_key")
+    if whop_auth.gate_enabled() and not license_gate():
+        return
+
+    # In hosted (SaaS) mode customers bring their own API keys; never fall back
+    # to keys saved on the server.
+    if whop_auth.gate_enabled():
+        saved_openai = saved_hunter = ""
+    else:
+        saved_openai = secret_value("OPENAI_API_KEY", "openai_api_key")
+        saved_hunter = secret_value("HUNTER_API_KEY", "hunter_api_key")
 
     st.markdown(
         """
