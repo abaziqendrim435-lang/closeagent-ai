@@ -7,6 +7,8 @@
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+  # The Neon Auth URL is public (it is also in the code), not a secret.
+  SECRETS_SCAN_OMIT_KEYS = "NEON_AUTH_BASE_URL"
 
 # Next.js runtime (SSR, API routes, proxy) — without it Netlify serves .next as static files (404).
 [[plugins]]
