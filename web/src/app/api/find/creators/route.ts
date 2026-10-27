@@ -22,6 +22,7 @@ export async function POST(req: Request) {
 
     let creators = await findCreators(input);
     await addUsage(user.id, "searches", 1);
+    const scanned = creators.length;
     if (input.onlyWithEmail) creators = creators.filter((c) => c.email);
 
     await upsertLeads(
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
         name: c.name,
         company: c.name,
         email: c.email,
-        email_source: c.email ? "youtube_description" : "",
+        email_source: c.email ? (c.emailSource === "video" ? "youtube_video_description" : "youtube_description") : "",
         website: c.url,
         title: "YouTube creator",
         subscribers: c.subscribers,
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({
+      scanned,
       found: creators.length,
       withEmail: creators.filter((c) => c.email).length,
       creators,

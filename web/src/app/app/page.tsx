@@ -29,7 +29,7 @@ export default function FindCreators() {
   const [onlyWithEmail, setOnlyWithEmail] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ found: number; withEmail: number; creators: Creator[] } | null>(null);
+  const [result, setResult] = useState<{ scanned: number; found: number; withEmail: number; creators: Creator[] } | null>(null);
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
@@ -119,11 +119,21 @@ export default function FindCreators() {
       {result && (
         <>
           <Notice tone={result.withEmail ? "ok" : "warn"}>
-            Found {result.found} creators, {result.withEmail} with a public business email. They were saved to{" "}
-            <Link href="/app/leads" className="underline">
-              Leads & drafts
-            </Link>
-            .
+            {result.found === 0 && result.scanned > 0 ? (
+              <>
+                Checked {result.scanned} active creators in this size range, but none publish a business email.
+                Untick “Only show creators with a public business email” to save them anyway (you can DM them),
+                or try a broader topic / another audience size.
+              </>
+            ) : (
+              <>
+                Found {result.found} creators, {result.withEmail} with a public business email. They were saved to{" "}
+                <Link href="/app/leads" className="underline">
+                  Leads & drafts
+                </Link>
+                .
+              </>
+            )}
           </Notice>
           <div className="overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-left text-sm">

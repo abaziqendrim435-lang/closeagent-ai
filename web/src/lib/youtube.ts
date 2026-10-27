@@ -15,6 +15,7 @@ export interface CreatorResult {
   email: string;
   allEmails: string[];
   recentVideoTitle: string;
+  emailSource: "channel" | "video" | "";
 }
 
 export interface CreatorSearch {
@@ -44,6 +45,10 @@ interface SearchItem {
   id: { videoId?: string; channelId?: string };
   snippet: { channelId: string; title: string; publishedAt: string };
 }
+interface VideoItem {
+  id: string;
+  snippet: { channelId: string; description?: string };
+}
 interface ChannelItem {
   id: string;
   snippet: { title: string; description: string; customUrl?: string; country?: string };
@@ -62,6 +67,7 @@ export async function findCreators(opts: CreatorSearch): Promise<CreatorResult[]
   const publishedAfter = new Date(Date.now() - days * 86_400_000).toISOString();
 
   const recentTitle = new Map<string, string>();
+  const recentVideos = new Map<string, string[]>(); // channelId -> up to 3 recent matching video ids
   let pageToken = "";
   for (let page = 0; page < 2 && recentTitle.size < want * 3; page++) {
     const params: Record<string, string> = {
@@ -78,7 +84,10 @@ export async function findCreators(opts: CreatorSearch): Promise<CreatorResult[]
     const data = await yt<{ items: SearchItem[]; nextPageToken?: string }>("search", params);
     for (const item of data.items ?? []) {
       const id = item.snippet.channelId;
-      if (id && !recentTitle.has(id)) recentTitle.set(id, item.snippet.title);
+      if (!id) continue;
+      if (!recentTitle.has(id)) recentTitle.set(id, item.snippet.title);
+      const vids = recentVideos.get(id) ?? [];
+      if (item.id.videoId && vids.length < 3) recentVideos.set(id, [...vids, item.id.videoId]);
     }
     if (!data.nextPageToken) break;
     pageToken = data.nextPageToken;
@@ -97,11 +106,33 @@ export async function findCreators(opts: CreatorSearch): Promise<CreatorResult[]
 
   const min = opts.minSubscribers ?? 0;
   const max = opts.maxSubscribers ?? Number.MAX_SAFE_INTEGER;
-  const results: CreatorResult[] = [];
-  for (const ch of channels) {
+  const kept = channels.filter((ch) => {
     const subs = ch.statistics?.hiddenSubscriberCount ? null : Number(ch.statistics?.subscriberCount ?? NaN);
-    if (subs !== null && (Number.isNaN(subs) || subs < min || subs > max)) continue;
-    const emails = extractEmails(ch.snippet.description ?? "");
+    return subs === null || (!Number.isNaN(subs) && subs >= min && subs <= max);
+  });
+
+  // Many creators publish their business email in every video description rather than the
+  // channel "about" text, so read the full descriptions of their matching videos too
+  // (videos.list costs 1 quota unit per 50 videos).
+  const videoText = new Map<string, string>();
+  const videoIds = kept.flatMap((ch) => recentVideos.get(ch.id) ?? []);
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const data = await yt<{ items: VideoItem[] }>("videos", {
+      part: "snippet",
+      id: videoIds.slice(i, i + 50).join(","),
+      maxResults: "50",
+    });
+    for (const v of data.items ?? []) {
+      const prev = videoText.get(v.snippet.channelId) ?? "";
+      videoText.set(v.snippet.channelId, `${prev}\n${v.snippet.description ?? ""}`);
+    }
+  }
+
+  const results: CreatorResult[] = [];
+  for (const ch of kept) {
+    const subs = ch.statistics?.hiddenSubscriberCount ? null : Number(ch.statistics?.subscriberCount ?? NaN);
+    const channelEmails = extractEmails(ch.snippet.description ?? "");
+    const emails = channelEmails.length ? channelEmails : extractEmails(videoText.get(ch.id) ?? "");
     const handle = ch.snippet.customUrl ?? "";
     results.push({
       channelId: ch.id,
@@ -114,6 +145,7 @@ export async function findCreators(opts: CreatorSearch): Promise<CreatorResult[]
       description: (ch.snippet.description ?? "").slice(0, 1200),
       email: pickBestEmail(emails),
       allEmails: emails,
+      emailSource: channelEmails.length ? "channel" : emails.length ? "video" : "",
       recentVideoTitle: decodeEntities(recentTitle.get(ch.id) ?? ""),
     });
   }

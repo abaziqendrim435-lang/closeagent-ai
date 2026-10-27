@@ -36,6 +36,11 @@ test("findCreators filters by size, extracts emails, sorts email-first", async (
   globalThis.fetch = (async (url: string) => {
     calls.push(url);
     const u = new URL(url);
+    if (u.pathname.endsWith("/videos")) {
+      return new Response(JSON.stringify({ items: [
+        { id: "v1", snippet: { channelId: "A", description: "Sponsorships: deals@alexai.com" } },
+      ] }));
+    }
     if (u.pathname.endsWith("/search")) {
       return new Response(JSON.stringify({ items: [
         { id: { videoId: "v1" }, snippet: { channelId: "A", title: "Cold email &amp; AI", publishedAt: "" } },
@@ -50,10 +55,12 @@ test("findCreators filters by size, extracts emails, sorts email-first", async (
     ] }));
   }) as typeof fetch;
   const res = await findCreators({ query: "cold email", minSubscribers: 10000, maxSubscribers: 100000 });
-  assert.deepEqual(res.map((r) => r.name), ["Bea Builds", "Alex AI"]);
-  assert.equal(res[0].email, "hello@beabuilds.co");
-  assert.equal(res[1].email, "");
-  assert.equal(res[1].url, "https://www.youtube.com/@alexai");
-  assert.equal(res[1].recentVideoTitle, "Cold email & AI");
+  assert.deepEqual(res.map((r) => r.name), ["Alex AI", "Bea Builds"]);
+  assert.equal(res[1].email, "hello@beabuilds.co");
+  assert.equal(res[1].emailSource, "channel");
+  assert.equal(res[0].email, "deals@alexai.com");
+  assert.equal(res[0].emailSource, "video");
+  assert.equal(res[0].url, "https://www.youtube.com/@alexai");
+  assert.equal(res[0].recentVideoTitle, "Cold email & AI");
   assert.ok(calls[0].includes("type=video"));
 });
