@@ -51,8 +51,15 @@ export default function LeadsPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    api<{ leads: Lead[] }>("/api/leads")
+      .then((data) => active && setLeads(data.leads))
+      .catch((err) => active && setMessage({ tone: "bad", text: (err as Error).message }))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const visible = useMemo(
     () => leads.filter((l) => (filter === "all" ? true : filter === "email" ? !!l.email : !l.email)),

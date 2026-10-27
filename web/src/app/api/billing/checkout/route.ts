@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/account";
+import { sql } from "@/lib/db";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
-import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function POST() {
   try {
     const { user, profile } = await requireUser();
-    let customerId = profile?.stripe_customer_id ?? null;
+    let customerId = profile.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe().customers.create({
         email: user.email ?? undefined,
-        metadata: { supabase_user_id: user.id },
+        metadata: { user_id: user.id },
       });
       customerId = customer.id;
-      await supabaseAdmin().from("profiles").update({ stripe_customer_id: customerId }).eq("id", user.id);
+      await sql()`update profiles set stripe_customer_id = ${customerId} where user_id = ${user.id}`;
     }
     const session = await stripe().checkout.sessions.create({
       mode: "subscription",

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { errorResponse, getUsage, requireUser } from "@/lib/account";
+import { sql } from "@/lib/db";
 import { PLANS, planFor } from "@/lib/plans";
-import { supabaseAdmin } from "@/lib/supabase/server";
 
 const Body = z.object({
   sender_name: z.string().trim().max(80),
@@ -15,13 +15,8 @@ const Body = z.object({
 export async function GET() {
   try {
     const { user, profile } = await requireUser();
-    const plan = planFor(profile?.subscription_status);
-    return NextResponse.json({
-      profile,
-      plan,
-      limits: PLANS[plan].limits,
-      usage: await getUsage(user.id),
-    });
+    const plan = planFor(profile.subscription_status);
+    return NextResponse.json({ profile, plan, limits: PLANS[plan].limits, usage: await getUsage(user.id) });
   } catch (err) {
     return errorResponse(err);
   }
@@ -30,10 +25,10 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const { user } = await requireUser();
-    const fields = Body.parse(await req.json());
-    // Written with the service role so users can't touch billing columns via RLS.
-    const { error } = await supabaseAdmin().from("profiles").update(fields).eq("id", user.id);
-    if (error) throw new Error(error.message);
+    const f = Body.parse(await req.json());
+    await sql()`update profiles set sender_name = ${f.sender_name}, sender_company = ${f.sender_company},
+                offer = ${f.offer}, cta = ${f.cta}, language = ${f.language || "English"}
+                where user_id = ${user.id}`;
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid settings." }, { status: 400 });

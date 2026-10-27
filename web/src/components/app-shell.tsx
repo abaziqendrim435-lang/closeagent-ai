@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/components/ui";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 
 interface Settings {
   plan: "free" | "pro";
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [load]);
 
   async function signOut() {
-    await supabaseBrowser().auth.signOut();
+    await authClient.signOut();
     router.push("/");
   }
 

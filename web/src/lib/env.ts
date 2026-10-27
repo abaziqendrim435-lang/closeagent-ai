@@ -11,9 +11,9 @@ function required(name: string): string {
 }
 
 export const env = {
-  supabaseUrl: () => required("NEXT_PUBLIC_SUPABASE_URL"),
-  supabaseAnonKey: () => required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  supabaseServiceKey: () => required("SUPABASE_SERVICE_ROLE_KEY"),
+  databaseUrl: () => required("DATABASE_URL"),
+  neonAuthBaseUrl: () => required("NEON_AUTH_BASE_URL"),
+  neonAuthCookieSecret: () => required("NEON_AUTH_COOKIE_SECRET"),
   openaiKey: () => required("OPENAI_API_KEY"),
   openaiModel: () => optional("OPENAI_MODEL") || "gpt-4o-mini",
   youtubeKey: () => required("YOUTUBE_API_KEY"),

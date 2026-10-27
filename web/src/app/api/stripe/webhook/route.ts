@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { sql } from "@/lib/db";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
-import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Keeps profiles.subscription_status in sync with Stripe.
 export async function POST(req: Request) {
@@ -24,14 +24,10 @@ export async function POST(req: Request) {
     const sub = event.data.object as Stripe.Subscription;
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
     const periodEnd = sub.items?.data?.[0]?.current_period_end;
-    const { error } = await supabaseAdmin()
-      .from("profiles")
-      .update({
-        subscription_status: event.type === "customer.subscription.deleted" ? "canceled" : sub.status,
-        current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-      })
-      .eq("stripe_customer_id", customerId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const status = event.type === "customer.subscription.deleted" ? "canceled" : sub.status;
+    await sql()`update profiles set subscription_status = ${status},
+                current_period_end = ${periodEnd ? new Date(periodEnd * 1000).toISOString() : null}
+                where stripe_customer_id = ${customerId}`;
   }
   return NextResponse.json({ received: true });
 }

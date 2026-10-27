@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/server";
+import { sql } from "@/lib/db";
 import { PLANS, currentMonth, planFor, type PlanLimits } from "@/lib/plans";
 
 export type UsageField = keyof PlanLimits;
 
 export interface Profile {
-  id: string;
+  user_id: string;
   email: string | null;
   sender_name: string;
   sender_company: string;
@@ -23,28 +24,27 @@ export class HttpError extends Error {
   }
 }
 
-/** Load the signed-in user and profile, or throw 401. */
+/** Load the signed-in user and their profile (created on first use), or throw 401. */
 export async function requireUser() {
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new HttpError(401, "Please sign in.");
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  return { supabase, user, profile: (profile ?? null) as Profile | null };
+  const { data: session } = await auth().getSession();
+  const user = session?.user;
+  if (!user?.id) throw new HttpError(401, "Please sign in.");
+  const rows = (await sql()`
+    insert into profiles (user_id, email) values (${user.id}, ${user.email ?? null})
+    on conflict (user_id) do update set email = coalesce(excluded.email, profiles.email)
+    returning *`) as Profile[];
+  return { user: { id: user.id, email: user.email ?? null }, profile: rows[0] };
 }
 
 export async function getUsage(userId: string) {
-  const { data } = await supabaseAdmin()
-    .from("usage")
-    .select("searches, drafts, lookups")
-    .eq("user_id", userId)
-    .eq("month", currentMonth())
-    .maybeSingle();
-  return { searches: data?.searches ?? 0, drafts: data?.drafts ?? 0, lookups: data?.lookups ?? 0 };
+  const rows = (await sql()`
+    select searches, drafts, lookups from usage where user_id = ${userId} and month = ${currentMonth()}`) as Array<
+    Record<UsageField, number>
+  >;
+  return { searches: rows[0]?.searches ?? 0, drafts: rows[0]?.drafts ?? 0, lookups: rows[0]?.lookups ?? 0 };
 }
 
-/** Throw 402 if the user cannot spend `amount` of `field` this month; return remaining. */
+/** Throw 402 if the user cannot spend `amount` of `field` this month. */
 export async function assertQuota(userId: string, status: string | undefined, field: UsageField, amount = 1) {
   const plan = planFor(status);
   const limit = PLANS[plan].limits[field];
@@ -63,13 +63,18 @@ export async function assertQuota(userId: string, status: string | undefined, fi
 
 export async function addUsage(userId: string, field: UsageField, amount: number) {
   if (amount <= 0) return;
-  const { error } = await supabaseAdmin().rpc("increment_usage", {
-    p_user: userId,
-    p_month: currentMonth(),
-    p_field: field,
-    p_amount: amount,
-  });
-  if (error) console.error("increment_usage failed", error.message);
+  const month = currentMonth();
+  const q = sql();
+  // Column names can't be parameters; `field` is a closed union, so pick the statement explicitly.
+  if (field === "searches")
+    await q`insert into usage (user_id, month, searches) values (${userId}, ${month}, ${amount})
+            on conflict (user_id, month) do update set searches = usage.searches + ${amount}`;
+  else if (field === "drafts")
+    await q`insert into usage (user_id, month, drafts) values (${userId}, ${month}, ${amount})
+            on conflict (user_id, month) do update set drafts = usage.drafts + ${amount}`;
+  else
+    await q`insert into usage (user_id, month, lookups) values (${userId}, ${month}, ${amount})
+            on conflict (user_id, month) do update set lookups = usage.lookups + ${amount}`;
 }
 
 export function errorResponse(err: unknown) {
