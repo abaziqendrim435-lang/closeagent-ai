@@ -63,12 +63,14 @@ For EACH target:
 3. "body": 70–120 words, plain text, no subject line inside.
 
 Rules for the body:
-- First sentence references a concrete fact above (their niche, audience, a recent video title). Never open with "I loved", "I hope", "I came across", "Just reaching out".
-- 1–2 sentences explaining the offer, framed around what THEY get.
+- Start with "Hi <first name>," on its own line (use the channel name if no person name is known).
+- Use 3–4 short paragraphs separated by blank lines (\n\n), like a real email.
+- First sentence after the greeting references a concrete fact above (their niche, audience, a recent video title). Never open with "I loved", "I hope", "I came across", "Just reaching out".
+- 1–2 sentences explaining the offer exactly as described above (do not add features), framed around what THEY get.
 - Honest: never invent results, clients, numbers, events or quotes that are not in the facts.
 - One call to action: ${offer.cta || "a short reply"}
 - Then this exact line: "If this isn't relevant, just reply 'no' and I won't follow up."
-- Sign off: "${signOff || "Best"}"
+- End with "Best," on its own line, then "${signOff || "the sender"}" on the next line.
 - Friendly, human tone. Language: ${offer.language || "English"}.
 
 Return JSON: {"emails":[{"angle":"...","subject":"...","body":"..."}]} with exactly ${leads.length} items in the same order.`;
