@@ -7,3 +7,7 @@
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+
+# Next.js runtime (SSR, API routes, proxy) — without it Netlify serves .next as static files (404).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
