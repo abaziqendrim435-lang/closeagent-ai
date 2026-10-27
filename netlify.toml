@@ -1,0 +1,9 @@
+# Netlify: build the Next.js SaaS in web/ (the Streamlit app at the root is not deployed here).
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
