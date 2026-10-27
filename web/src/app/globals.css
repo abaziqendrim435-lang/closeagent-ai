@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07070d;
+  --panel: #0e0e18;
+  --panel-2: #141424;
+  --line: #24243a;
+  --text: #ecedf6;
+  --muted: #8d90ab;
+  --accent: #8b6dff;
+  --accent-2: #3dd6f5;
+  --ok: #3ddc97;
+  --warn: #f5b84d;
+  --bad: #ff6b81;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --font-sans: ui-sans-serif, "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(139, 109, 255, 0.14), transparent 60%),
+    radial-gradient(700px 400px at 95% 0%, rgba(61, 214, 245, 0.08), transparent 55%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+.gradient-text {
+  background: linear-gradient(110deg, var(--accent-2), var(--accent) 55%, #ff7ad9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+input,
+textarea,
+select {
+  color-scheme: dark;
+}
