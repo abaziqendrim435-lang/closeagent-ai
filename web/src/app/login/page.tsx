@@ -1,19 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button, Card, Field, Input, Notice } from "@/components/ui";
 import { authClient } from "@/lib/auth/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // Landing-page CTAs link to /login?mode=signup.
+  const initialMode = useSearchParams().get("mode") === "signup" ? "signup" : "signin";
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,6 +84,13 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create free account"}
           </Button>
+          {mode === "signup" && (
+            <p className="text-center text-xs text-muted">
+              By creating an account you agree to the{" "}
+              <Link href="/terms" className="text-accent hover:underline">Terms</Link> and{" "}
+              <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
+            </p>
+          )}
         </form>
       </Card>
     </main>
